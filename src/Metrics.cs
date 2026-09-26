@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net.NetworkInformation;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -41,6 +42,8 @@ namespace SystemPulse
         private long lastGpuRefresh;
         private int gpuBusy;
         private bool nvidiaMissing;
+        private Dictionary<string, CounterSample> prevGpuSamples;
+        private bool gpuInfoRead;
 
         private readonly string hostname = Environment.MachineName;
         private readonly string systemRoot;
@@ -50,6 +53,9 @@ namespace SystemPulse
         {
             systemRoot = (Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\").Substring(0, 2).ToUpperInvariant();
             SampleCpu();
+#if TESTHOOKS
+            nvidiaMissing = Environment.GetEnvironmentVariable("SYSTEMPULSE_GPU_MODE") == "counters";
+#endif
             // Lectures potentiellement lentes au premier appel : en arrière-plan, l'interface ne les attend pas.
             netBusy = 1;
             Task.Run(delegate { try { SampleNetwork(); } finally { Interlocked.Exchange(ref netBusy, 0); } });
@@ -140,6 +146,7 @@ namespace SystemPulse
 
         private void RefreshGpu()
         {
+            if (nvidiaMissing) { RefreshGpuGeneric(); return; }
             try
             {
                 ProcessStartInfo psi = new ProcessStartInfo("nvidia-smi.exe",
@@ -166,8 +173,73 @@ namespace SystemPulse
             }
             catch (Exception)
             {
-                nvidiaMissing = true; // pas de nvidia-smi : GPU non mesuré (N/D)
+                nvidiaMissing = true; // pas de nvidia-smi : bascule sur les compteurs Windows (tous constructeurs)
+                RefreshGpuGeneric();
             }
+        }
+
+        // Repli pour AMD / Intel (et NVIDIA sans nvidia-smi) : compteurs « GPU Engine » de Windows 10 1709+.
+        // Comme le Gestionnaire des tâches : somme par moteur (3D, Copy, Video...) et par carte, puis le moteur le plus chargé.
+        // La température n'est pas exposée par ces compteurs : elle reste N/D hors NVIDIA.
+        private void RefreshGpuGeneric()
+        {
+            try
+            {
+                if (!gpuInfoRead) { gpuInfoRead = true; ReadGpuRegistryInfo(); }
+                PerformanceCounterCategory category = new PerformanceCounterCategory("GPU Engine");
+                InstanceDataCollection utilization = category.ReadCategory()["Utilization Percentage"];
+                if (utilization == null) return;
+                Dictionary<string, CounterSample> next = new Dictionary<string, CounterSample>();
+                Dictionary<string, double> sums = new Dictionary<string, double>();
+                foreach (InstanceData inst in utilization.Values)
+                {
+                    next[inst.InstanceName] = inst.Sample;
+                    CounterSample before;
+                    if (prevGpuSamples == null || !prevGpuSamples.TryGetValue(inst.InstanceName, out before)) continue;
+                    Match m = Regex.Match(inst.InstanceName, @"luid_(0x[0-9a-fA-F]+_0x[0-9a-fA-F]+).*engtype_(\w+)");
+                    if (!m.Success) continue;
+                    string key = m.Groups[1].Value + "/" + m.Groups[2].Value;
+                    double v = CounterSample.Calculate(before, inst.Sample);
+                    double old;
+                    sums.TryGetValue(key, out old);
+                    sums[key] = old + v;
+                }
+                bool firstSample = prevGpuSamples == null;
+                prevGpuSamples = next;
+                if (firstSample) return; // il faut deux mesures pour obtenir un pourcentage
+                double max = 0;
+                foreach (double v in sums.Values) max = Math.Max(max, v);
+                gpuUsage = Math.Max(0, Math.Min(100, max));
+                gpuTemp = null;
+            }
+            catch (Exception) { /* compteurs indisponibles : GPU affiché N/D */ }
+        }
+
+        private void ReadGpuRegistryInfo()
+        {
+            try
+            {
+                using (Microsoft.Win32.RegistryKey cls = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
+                    @"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}"))
+                {
+                    if (cls == null) return;
+                    foreach (string name in cls.GetSubKeyNames())
+                    {
+                        using (Microsoft.Win32.RegistryKey k = cls.OpenSubKey(name))
+                        {
+                            if (k == null) continue;
+                            string desc = k.GetValue("DriverDesc") as string;
+                            if (string.IsNullOrEmpty(desc) || desc.IndexOf("Basic", StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                            gpuName = desc;
+                            object mem = k.GetValue("HardwareInformation.qwMemorySize");
+                            if (mem is long) gpuVram = (double)(long)mem;
+                            else if (mem is byte[] && ((byte[])mem).Length >= 8) gpuVram = BitConverter.ToInt64((byte[])mem, 0);
+                            if (gpuName != null) return;
+                        }
+                    }
+                }
+            }
+            catch (Exception) { }
         }
 
         private static double? ParseNumber(string text)
@@ -188,7 +260,6 @@ namespace SystemPulse
 
         private void KickGpu()
         {
-            if (nvidiaMissing) return;
             long now = NowMs();
             if (now - lastGpuRefresh < 3000) return;
             if (Interlocked.CompareExchange(ref gpuBusy, 1, 0) != 0) return;

@@ -1,6 +1,6 @@
 # System Pulse
 
-Moniteur Windows léger : CPU, GPU (NVIDIA), RAM, température GPU, réseau, tous les disques et FPS réels, avec un overlay déplaçable à poser par-dessus les jeux.
+Moniteur Windows léger : CPU, GPU (toutes marques), RAM, température GPU (NVIDIA), réseau, tous les disques et FPS réels, avec un overlay déplaçable à poser par-dessus les jeux.
 
 **Téléchargement : https://system-pulse-alpha.vercel.app** (zip de 0,7 Mo, rien à installer, ouverture en ~0,5 s).
 
@@ -57,7 +57,7 @@ GitHub Actions (`.github/workflows/release.yml`) compile, crée la Release (zip 
 
 ## Limites connues
 
-- GPU et température : cartes NVIDIA uniquement (`nvidia-smi`).
+- GPU : charge mesurée sur toutes les cartes (compteurs Windows « GPU Engine » ; `nvidia-smi` en priorité si présent). Température : cartes NVIDIA uniquement, « N/D » sinon.
 - Exécutable non signé : SmartScreen peut afficher un avertissement.
 - « Relancer en administrateur » : la confirmation Windows (UAC) n'est pas testée de bout en bout.
 - Sur un PC sans WebView2 Runtime, un message l'indique et donne le lien d'installation.
