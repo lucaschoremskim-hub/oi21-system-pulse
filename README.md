@@ -34,7 +34,7 @@ dotnet build -c Test -p:Platform=x64 -o out-test\SystemPulse
 node tests\ui-native.mjs  <dossier-captures>   # fenêtre principale (27 vérifications)
 node tests\ui-overlay.mjs <dossier-captures>   # overlay réel (16)
 node tests\ui-update.mjs  <dossier-captures>   # vérification de mise à jour (5)
-node testsui-gpu.mjs     <dossier-captures>   # repli GPU par compteurs Windows (4)
+node tests\ui-gpu.mjs     <dossier-captures>   # repli GPU par compteurs Windows (4)
 ```
 
 ## Publier une version
