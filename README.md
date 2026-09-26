@@ -1,8 +1,8 @@
-# System Pulse
+# Oi-21 System Pulse
 
 Moniteur Windows léger : CPU, GPU (toutes marques), RAM, température GPU (NVIDIA), réseau, tous les disques et FPS réels, avec un overlay déplaçable à poser par-dessus les jeux.
 
-**Téléchargement : https://system-pulse-alpha.vercel.app** (zip de 0,7 Mo, rien à installer, ouverture en ~0,5 s).
+**Téléchargement : https://oi21-system-pulse.vercel.app** (zip de 0,7 Mo, rien à installer, ouverture en ~0,5 s).
 
 Tout reste local : les mesures ne quittent jamais le PC. La seule requête réseau est la lecture de [`site/version.json`](site/version.json) au démarrage, pour signaler une nouvelle version.
 
@@ -48,7 +48,7 @@ GitHub Actions (`.github/workflows/release.yml`) compile, crée la Release (zip 
 
 | Élément | Où |
 |---|---|
-| Code, versions (zip) | GitHub : `lucaschoremskim-hub/system-pulse` |
+| Code, versions (zip) | GitHub : `lucaschoremskim-hub/oi21-system-pulse` |
 | Page de téléchargement + `version.json` | Vercel, dossier `site/` |
 
 ## Composants tiers

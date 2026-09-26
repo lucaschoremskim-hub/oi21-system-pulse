@@ -24,7 +24,7 @@ jobs:
       - name: Créer la Release
         shell: bash
         env: { GH_TOKEN: '${{ github.token }}' }
-        run: gh release create "${{ github.ref_name }}" dist/SystemPulse.zip dist/SystemPulse.zip.sha256 --title "System Pulse ${{ steps.pkg.outputs.version }}" --generate-notes
+        run: gh release create "${{ github.ref_name }}" dist/SystemPulse.zip dist/SystemPulse.zip.sha256 --title "Oi-21 System Pulse ${{ steps.pkg.outputs.version }}" --generate-notes
       - name: Publier version.json (déclenche le déploiement Vercel)
         shell: bash
         run: |

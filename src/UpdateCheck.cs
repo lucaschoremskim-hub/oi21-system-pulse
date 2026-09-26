@@ -8,10 +8,13 @@ namespace SystemPulse
     // Vérifie s'il existe une version plus récente : une seule requête GET vers version.json, rien n'est envoyé.
     internal static class UpdateCheck
     {
-        public const string DefaultUrl = "https://system-pulse-alpha.vercel.app/version.json";
+        public const string DefaultUrl = "https://oi21-system-pulse.vercel.app/version.json";
         // Seules ces adresses peuvent être ouvertes depuis l'interface (le lien vient d'un fichier distant).
         private static readonly string[] AllowedPrefixes =
         {
+            "https://github.com/lucaschoremskim-hub/oi21-system-pulse/",
+            "https://oi21-system-pulse.vercel.app/",
+            // anciennes adresses (versions 2.1 et 2.2 déjà installées, redirections GitHub)
             "https://github.com/lucaschoremskim-hub/system-pulse/",
             "https://system-pulse-alpha.vercel.app/"
         };
