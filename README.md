@@ -34,12 +34,13 @@ dotnet build -c Test -p:Platform=x64 -o out-test\SystemPulse
 node tests\ui-native.mjs  <dossier-captures>   # fenêtre principale (27 vérifications)
 node tests\ui-overlay.mjs <dossier-captures>   # overlay réel (16)
 node tests\ui-update.mjs  <dossier-captures>   # vérification de mise à jour (5)
+node testsui-gpu.mjs     <dossier-captures>   # repli GPU par compteurs Windows (4)
 ```
 
 ## Publier une version
 
 1. Changer `<Version>` dans `SystemPulse.csproj`, commit, push.
-2. `git tag v2.2.0 && git push --tags`.
+2. `git tag v2.3.0 && git push --tags`.
 
 GitHub Actions (`.github/workflows/release.yml`) compile, crée la Release (zip + SHA-256), met à jour `site/version.json` ; Vercel redéploie le site. Les applications déjà installées affichent alors « Version x.y.z disponible ».
 
