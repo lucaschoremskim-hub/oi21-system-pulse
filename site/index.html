@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>System Pulse</title>
+<meta name="description" content="Moniteur Windows léger : CPU, GPU, RAM, réseau, disques et FPS, avec overlay. 0,7 Mo, 100 % local.">
+<link rel="icon" href="icon.png">
+<style>
+  :root { --bg:#060a11; --panel:rgba(255,255,255,.04); --stroke:rgba(255,255,255,.09); --text:#eaf1f8; --muted:#8b9bb0; --mint:#68e5be; --ink:#04140f; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:radial-gradient(1200px 500px at 50% -10%, rgba(104,229,190,.10), transparent), var(--bg); color:var(--text);
+    font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:56px 20px 40px; }
+  .brand { display:flex; align-items:center; gap:14px; }
+  .brand img { width:56px; height:56px; border-radius:14px; }
+  h1 { margin:0; font-size:2rem; letter-spacing:-.02em; }
+  .tag { color:var(--muted); margin:2px 0 0; }
+  p.lead { font-size:1.15rem; margin:28px 0 22px; }
+  .cta { display:inline-flex; align-items:center; gap:10px; background:var(--mint); color:var(--ink); font-weight:650; text-decoration:none;
+    padding:13px 22px; border-radius:12px; }
+  .cta:hover { filter:brightness(1.08); }
+  .cta:focus-visible, a:focus-visible { outline:2px solid #fff; outline-offset:3px; }
+  .meta { color:var(--muted); font-size:.9rem; margin-top:12px; }
+  ul.facts { list-style:none; padding:0; margin:36px 0; display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); }
+  ul.facts li { background:var(--panel); border:1px solid var(--stroke); border-radius:14px; padding:16px 18px; }
+  ul.facts b { display:block; color:var(--mint); font-size:1.4rem; }
+  h2 { font-size:1.1rem; margin:34px 0 8px; }
+  ol, .small { color:var(--muted); }
+  a { color:var(--mint); }
+  footer { margin-top:44px; color:var(--muted); font-size:.85rem; border-top:1px solid var(--stroke); padding-top:18px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">
+    <img src="icon.png" alt="" width="56" height="56">
+    <div><h1>System Pulse</h1><p class="tag">Moniteur système pour Windows</p></div>
+  </div>
+
+  <p class="lead">CPU, GPU, mémoire, réseau, disques et FPS en temps réel, avec un overlay à poser par-dessus vos jeux.</p>
+
+  <a class="cta" id="dl" href="https://github.com/lucaschoremskim-hub/system-pulse/releases/latest/download/SystemPulse.zip">Télécharger pour Windows</a>
+  <p class="meta" id="meta">Windows 10/11, 64 bits · zip de moins de 1 Mo</p>
+
+  <ul class="facts">
+    <li><b>0,7 Mo</b>de téléchargement, rien à installer</li>
+    <li><b>~0,5 s</b>pour s’ouvrir</li>
+    <li><b>100 % local</b>aucune donnée mesurée ne quitte votre PC</li>
+  </ul>
+
+  <h2>Installer</h2>
+  <ol>
+    <li>Clic droit sur le zip, puis « Extraire tout… » vers un dossier que vous gardez.</li>
+    <li>Double-cliquez sur <code>SystemPulse.exe</code>.</li>
+  </ol>
+  <p class="small">L’application n’est pas encore signée numériquement : Windows peut afficher « Windows a protégé votre ordinateur ». Cliquez sur « Informations complémentaires », puis « Exécuter quand même ». Le code source est public pour que vous puissiez le vérifier.</p>
+
+  <h2>Bon à savoir</h2>
+  <p class="small">GPU et température : cartes NVIDIA uniquement. Les FPS utilisent PresentMon (Intel, licence MIT) et demandent les droits administrateur. Au démarrage, l’application lit seulement le fichier <a href="version.json">version.json</a> de ce site pour signaler une nouvelle version ; rien n’est envoyé.</p>
+
+  <footer>
+    <a href="https://github.com/lucaschoremskim-hub/system-pulse">Code source et versions</a> · Licence MIT
+  </footer>
+</main>
+<script>
+  fetch('version.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (v) {
+    if (!v || !v.version) return;
+    document.getElementById('meta').textContent = 'Version ' + v.version + ' · Windows 10/11, 64 bits · zip de moins de 1 Mo';
+    if (v.url) document.getElementById('dl').href = v.url;
+  }).catch(function () {});
+</script>
+</body>
+</html>

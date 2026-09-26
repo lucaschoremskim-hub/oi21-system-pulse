@@ -1,0 +1,39 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: 8.0.x }
+      - name: Empaquetage
+        id: pkg
+        shell: powershell
+        run: |
+          $out = powershell -NoProfile -ExecutionPolicy Bypass -File tools/package.ps1
+          $out
+          $v = ($out | Where-Object { $_ -like '::VERSION::*' }) -replace '::VERSION::', ''
+          if ("v$v" -ne "${{ github.ref_name }}") { throw "Le tag ${{ github.ref_name }} ne correspond pas à la version du projet ($v)." }
+          "version=$v" | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
+      - name: Créer la Release
+        shell: bash
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: gh release create "${{ github.ref_name }}" dist/SystemPulse.zip dist/SystemPulse.zip.sha256 --title "System Pulse ${{ steps.pkg.outputs.version }}" --generate-notes
+      - name: Publier version.json (déclenche le déploiement Vercel)
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main && git checkout main
+          node -e "
+            const fs=require('fs'); const f='site/version.json'; const j=JSON.parse(fs.readFileSync(f,'utf8'));
+            j.version='${{ steps.pkg.outputs.version }}'; j.notes='Voir les notes de version sur GitHub.';
+            fs.writeFileSync(f, JSON.stringify(j,null,2)+'\n');"
+          git add site/version.json
+          git diff --cached --quiet || (git commit -m "Site : version ${{ steps.pkg.outputs.version }}" && git push origin main)

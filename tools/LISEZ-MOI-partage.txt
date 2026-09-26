@@ -1,0 +1,48 @@
+System Pulse {VERSION} — Windows 10/11, 64 bits
+
+IMPORTANT : ne lancez pas l'application depuis l'intérieur du zip.
+
+1. Clic droit sur le zip > "Extraire tout..." vers un dossier de votre choix
+   (par exemple Documents ou le Bureau). Gardez ce dossier : c'est l'application.
+2. Ouvrir le dossier extrait et double-cliquer sur "SystemPulse.exe".
+   L'application s'ouvre en moins d'une seconde.
+3. Astuce : clic droit sur "SystemPulse.exe" > "Envoyer vers" >
+   "Bureau (créer un raccourci)".
+
+Ce qu'il faut sur le PC (déjà présent sur presque tous les PC récents)
+- Windows 10 ou 11, 64 bits, avec .NET Framework 4.8 (inclus dans Windows 10 mai 2019 et suivants).
+- WebView2 Runtime (moteur d'affichage d'Edge). Préinstallé sur Windows 11 et la plupart
+  des Windows 10. S'il manque, un message l'indique : installer "WebView2 Runtime" depuis
+  https://developer.microsoft.com/microsoft-edge/webview2 puis relancer.
+
+Avertissement Windows possible
+L'application n'est pas signée numériquement. Windows peut afficher
+"Windows a protégé votre ordinateur" (SmartScreen).
+Cliquer sur "Informations complémentaires" puis "Exécuter quand même".
+
+Ce que fait l'application
+Elle affiche en temps réel la charge CPU, GPU (NVIDIA), RAM, la température GPU,
+le réseau et tous les disques, avec un overlay optionnel par-dessus les jeux.
+Tout reste local : les mesures ne quittent jamais le PC. Seule requête réseau : au démarrage, lecture du fichier version.json du site pour signaler une nouvelle version (rien n’est envoyé).
+
+Fonctions
+- Bouton "Affichage" : cases à cocher pour choisir ce qu'on veut voir, dans le
+  tableau de bord et dans l'overlay (par exemple uniquement les températures).
+  Le bouton "Terminé" ou la touche Échap referme le panneau.
+- Bouton "Déplacer l'overlay" : glissez l'overlay où vous voulez, puis "Verrouiller" ;
+  sa position est retenue. Verrouillé, il laisse passer les clics vers le jeu.
+- Tous les disques sont affichés (A:, C:, D:...), avec une case par disque.
+- FPS réels du jeu en cours, désactivés par défaut (à cocher dans "Affichage").
+- Vos choix sont enregistrés et retrouvés au prochain lancement.
+
+FPS et droits administrateur
+Les FPS sont mesurés avec PresentMon (Intel, licence MIT, dossier vendor), qui exige de
+lancer l'application en administrateur. La carte FPS propose un bouton pour la relancer ainsi.
+La compatibilité avec les jeux protégés par un anti-triche n'est pas garantie.
+
+Limites
+- Le GPU et sa température ne sont mesurés que pour les cartes NVIDIA ("N/D" sinon).
+- Un lecteur vide ou un disque réseau n'est pas affiché.
+
+Pour arrêter : fermer la fenêtre (l'overlay se ferme avec elle).
+Pour désinstaller : supprimer le dossier extrait (et %APPDATA%\SystemPulse pour effacer les réglages).
