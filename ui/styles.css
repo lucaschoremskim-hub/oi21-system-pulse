@@ -152,6 +152,18 @@ select option { background: #101823; color: var(--text); }
 .sparkline { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 34px; opacity: 0.4; pointer-events: none; }
 .sparkline polyline { fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 
+/* Températures : une ligne par source (CPU, GPU), chacune avec son propre niveau d'alerte. */
+.temperature-rows { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 7px 0 2px; }
+.temperature-row { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.temperature-row-label { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; color: var(--faint); }
+.temperature-row--cpu strong { color: var(--mint); }
+.temperature-row--gpu strong { color: var(--violet); }
+.temperature-row strong { font-size: 22px; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; transition: color 0.25s; }
+.temperature-row--cpu[data-level='warn'] strong { color: var(--warn); }
+.temperature-row--cpu[data-level='crit'] strong { color: var(--crit); }
+.temperature-row--gpu[data-level='warn'] strong { color: var(--warn); }
+.temperature-row--gpu[data-level='crit'] strong { color: var(--crit); }
+
 /* Réseau */
 .network-rates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 .network-rate { display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -230,6 +242,8 @@ body.panel-open .metrics-grid, body.panel-open .empty-cards { display: none; }
 .metric-footer { margin-top: 5px; }
 .drive-list { gap: 5px; margin-top: 7px; }
 .network-rates { margin-top: 6px; }
+.temperature-rows { margin: 5px 0 2px; }
+.temperature-row strong { font-size: 20px; }
 .metric-note { margin-top: 4px; }
 /* Mini-courbe d'historique : à droite du chiffre, sans recouvrir le texte du bas. */
 .sparkline { left: auto; right: 10px; bottom: auto; top: 30px; width: 42%; height: 26px; opacity: 0.55; }

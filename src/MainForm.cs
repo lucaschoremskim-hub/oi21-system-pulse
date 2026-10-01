@@ -377,6 +377,11 @@ namespace SystemPulse
             if (prefs.OverlayShown("ram")) lines.Add(Line("RAM", Num(ram, "value"), "%", OverlayForm.Amber));
             if (prefs.OverlayShown("temp"))
             {
+                double? ct = Num(cpu, "temperature");
+                OverlayLine cl = new OverlayLine();
+                cl.Label = "CPU TEMP"; cl.Value = ct.HasValue ? Math.Round(ct.Value) + " °C" : "N/D"; cl.Unit = ""; cl.ValueColor = OverlayForm.Mint;
+                lines.Add(cl);
+
                 double? t = Num(gpu, "temperature");
                 OverlayLine l = new OverlayLine();
                 l.Label = "GPU TEMP"; l.Value = t.HasValue ? Math.Round(t.Value) + " °C" : "N/D"; l.Unit = ""; l.ValueColor = OverlayForm.Orange;

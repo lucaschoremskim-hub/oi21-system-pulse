@@ -1,6 +1,6 @@
 # Oi-21 System Pulse
 
-Moniteur Windows léger : CPU, GPU (toutes marques), RAM, température GPU (NVIDIA), réseau, tous les disques et FPS réels, avec un overlay déplaçable à poser par-dessus les jeux.
+Moniteur Windows léger : CPU, GPU (toutes marques), RAM, température CPU et GPU (selon le matériel), réseau, tous les disques et FPS réels, avec un overlay déplaçable à poser par-dessus les jeux.
 
 **Téléchargement : https://oi21-system-pulse.vercel.app** (zip de 0,7 Mo, rien à installer, ouverture en ~0,5 s).
 
@@ -35,12 +35,13 @@ node tests\ui-native.mjs  <dossier-captures>   # fenêtre principale (27 vérifi
 node tests\ui-overlay.mjs <dossier-captures>   # overlay réel (16)
 node tests\ui-update.mjs  <dossier-captures>   # vérification de mise à jour (5)
 node tests\ui-gpu.mjs     <dossier-captures>   # repli GPU par compteurs Windows (4)
+node tests\ui-cpu-temp.mjs <dossier-captures>  # température CPU, niveaux d'alerte, cas « non exposée » (14)
 ```
 
 ## Publier une version
 
 1. Changer `<Version>` dans `SystemPulse.csproj`, commit, push.
-2. `git tag v2.3.0 && git push --tags`.
+2. `git tag v2.4.0 && git push --tags`.
 
 GitHub Actions (`.github/workflows/release.yml`) compile, crée la Release (zip + SHA-256), met à jour `site/version.json` ; Vercel redéploie le site. Les applications déjà installées affichent alors « Version x.y.z disponible ».
 
@@ -59,6 +60,7 @@ GitHub Actions (`.github/workflows/release.yml`) compile, crée la Release (zip 
 ## Limites connues
 
 - GPU : charge mesurée sur toutes les cartes (compteurs Windows « GPU Engine » ; `nvidia-smi` en priorité si présent). Température : cartes NVIDIA uniquement, « N/D » sinon.
+- Température CPU : zones thermiques ACPI (`root\WMI`, `MSAcpi_ThermalZoneTemperature`), sans droits administrateur ni pilote tiers. Beaucoup de cartes mères de bureau n'exposent rien ici (capteurs non décrits à l'ACPI) : « N/D » alors, honnêtement, plutôt qu'une fausse valeur — c'est le cas sur la carte mère utilisée pour développer ce projet. Une vraie mesure fiable sur tout matériel exigerait un pilote comme celui de LibreHardwareMonitor, qui échoue au chargement (`ERROR_DRIVER_BLOCKED`, 0xE1) sur un Windows à jour : Microsoft bloque ce pilote par défaut depuis 2022-2023 (liste des pilotes vulnérables), admin ou non. Alternative si besoin d'une vraie mesure : faire tourner HWiNFO64 à côté (non intégré ici).
 - Exécutable non signé : SmartScreen peut afficher un avertissement.
 - « Relancer en administrateur » : la confirmation Windows (UAC) n'est pas testée de bout en bout.
 - Sur un PC sans WebView2 Runtime, un message l'indique et donne le lien d'installation.

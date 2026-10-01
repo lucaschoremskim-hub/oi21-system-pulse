@@ -21,8 +21,8 @@ L'application n'est pas signée numériquement. Windows peut afficher
 Cliquer sur "Informations complémentaires" puis "Exécuter quand même".
 
 Ce que fait l'application
-Elle affiche en temps réel la charge CPU, GPU (toutes marques), RAM, la température GPU (NVIDIA),
-le réseau et tous les disques, avec un overlay optionnel par-dessus les jeux.
+Elle affiche en temps réel la charge CPU, GPU (toutes marques), RAM, la température CPU et GPU
+(selon le matériel), le réseau et tous les disques, avec un overlay optionnel par-dessus les jeux.
 Tout reste local : les mesures ne quittent jamais le PC. Seule requête réseau : au démarrage, lecture du fichier version.json du site pour signaler une nouvelle version (rien n’est envoyé).
 
 Fonctions
@@ -41,7 +41,9 @@ lancer l'application en administrateur. La carte FPS propose un bouton pour la r
 La compatibilité avec les jeux protégés par un anti-triche n'est pas garantie.
 
 Limites
-- La charge GPU est mesurée sur toutes les cartes ; la température seulement sur NVIDIA ("N/D" sinon).
+- La charge GPU est mesurée sur toutes les cartes ; sa température seulement sur NVIDIA ("N/D" sinon).
+- La température CPU n'est pas exposée par toutes les cartes mères ("N/D" alors, honnêtement, plutôt
+  qu'une fausse valeur) : aucun lien avec les droits administrateur.
 - Un lecteur vide ou un disque réseau n'est pas affiché.
 
 Pour arrêter : fermer la fenêtre (l'overlay se ferme avec elle).

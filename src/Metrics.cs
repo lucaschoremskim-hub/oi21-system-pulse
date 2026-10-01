@@ -6,6 +6,7 @@ using System.Net.NetworkInformation;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Management;
 
 namespace SystemPulse
 {
@@ -44,6 +45,11 @@ namespace SystemPulse
         private bool nvidiaMissing;
         private Dictionary<string, CounterSample> prevGpuSamples;
         private bool gpuInfoRead;
+
+        private double? cpuTemp;
+        private bool cpuTempUnsupported;
+        private long lastCpuTempRefresh;
+        private int cpuTempBusy;
 
         private readonly string hostname = Environment.MachineName;
         private readonly string systemRoot;
@@ -267,6 +273,57 @@ namespace SystemPulse
             Task.Run(delegate { try { RefreshGpu(); } finally { Interlocked.Exchange(ref gpuBusy, 0); } });
         }
 
+        // Température CPU : zones thermiques ACPI exposées par la carte mère (rootWMI, MSAcpi_ThermalZoneTemperature).
+        // Beaucoup de cartes mères de bureau n'exposent rien ici (capteurs tiers non décrits à l'ACPI) : "N/D" alors,
+        // honnêtement, plutôt qu'une fausse mesure. Pas d'alternative fiable sans droits administrateur ET sans
+        // dépendre d'un pilote tiers que Windows bloque désormais par défaut (liste des pilotes vulnérables) :
+        // voir la note dans le README avant d'essayer d'en ajouter une.
+        private void RefreshCpuTemp()
+        {
+#if TESTHOOKS
+            string forced = Environment.GetEnvironmentVariable("SYSTEMPULSE_CPU_TEMP_C");
+            if (!string.IsNullOrEmpty(forced))
+            {
+                double v;
+                cpuTemp = double.TryParse(forced, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out v) ? (double?)v : null;
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("SYSTEMPULSE_CPU_TEMP_MODE") == "unsupported") { cpuTemp = null; cpuTempUnsupported = true; return; }
+#endif
+            if (cpuTempUnsupported) return;
+            try
+            {
+                using (ManagementObjectSearcher s = new ManagementObjectSearcher(@"root\WMI", "SELECT CurrentTemperature FROM MSAcpi_ThermalZoneTemperature"))
+                using (ManagementObjectCollection zones = s.Get())
+                {
+                    double? max = null;
+                    foreach (ManagementObject zone in zones)
+                    {
+                        double tenthsKelvin = Convert.ToDouble(zone["CurrentTemperature"]);
+                        double celsius = tenthsKelvin / 10.0 - 273.15;
+                        if (celsius < -40 || celsius > 130) continue; // capteur aberrant : ignoré plutôt qu'affiché
+                        if (!max.HasValue || celsius > max.Value) max = celsius;
+                    }
+                    cpuTemp = max;
+                    if (!max.HasValue) cpuTempUnsupported = true; // zones présentes mais aucune valeur plausible
+                }
+            }
+            catch (Exception)
+            {
+                cpuTempUnsupported = true; // classe WMI absente : carte mère qui n'expose pas la température (fréquent)
+                cpuTemp = null;
+            }
+        }
+
+        private void KickCpuTemp()
+        {
+            long now = NowMs();
+            if (now - lastCpuTempRefresh < 5000) return;
+            if (Interlocked.CompareExchange(ref cpuTempBusy, 1, 0) != 0) return;
+            lastCpuTempRefresh = now;
+            Task.Run(delegate { try { RefreshCpuTemp(); } finally { Interlocked.Exchange(ref cpuTempBusy, 0); } });
+        }
+
         public List<DriveStat> Drives { get { return drives; } }
 
         private static object Round1(double value) { return Math.Round(value, 1); }
@@ -284,6 +341,7 @@ namespace SystemPulse
             }
             KickDrives();
             KickGpu();
+            KickCpuTemp();
 
             Native.MEMORYSTATUSEX mem = new Native.MEMORYSTATUSEX();
             Native.GlobalMemoryStatusEx(mem);
@@ -304,6 +362,7 @@ namespace SystemPulse
 
             Dictionary<string, object> cpu = new Dictionary<string, object>();
             cpu["value"] = Round1(cpuValue); cpu["user"] = Round1(cpuUser); cpu["system"] = Round1(cpuSystem); cpu["cores"] = Environment.ProcessorCount;
+            cpu["temperature"] = NullableRound1(cpuTemp);
             root["cpu"] = cpu;
 
             Dictionary<string, object> gpu = new Dictionary<string, object>();
@@ -315,6 +374,7 @@ namespace SystemPulse
             root["ram"] = ram;
 
             Dictionary<string, object> temps = new Dictionary<string, object>();
+            temps["cpu"] = NullableRound1(cpuTemp);
             temps["gpu"] = NullableRound1(gpuTemp);
             root["temperatures"] = temps;
 

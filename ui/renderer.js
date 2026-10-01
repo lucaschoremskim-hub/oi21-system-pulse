@@ -44,6 +44,16 @@ function setLevel(cardName, level) {
   if (card && card.dataset.level !== level) card.dataset.level = level;
 }
 
+function setRowLevel(selector, level) {
+  const row = document.querySelector(selector);
+  if (row && row.dataset.level !== level) row.dataset.level = level;
+}
+
+const levelRank = { ok: 0, warn: 1, crit: 2 };
+function worstLevel(a, b) {
+  return levelRank[a] >= levelRank[b] ? a : b;
+}
+
 function renderStorageCard() {
   const box = $('storage-drives');
   if (!box) return;
@@ -313,7 +323,11 @@ function updateMain(metrics) {
   setLevel('cpu', levelFor(cpu.value, 75, 90));
   setLevel('gpu', levelFor(gpu.value, 75, 90));
   setLevel('ram', levelFor(ram.value, 80, 92));
-  setLevel('temperatures', levelFor(temperatures.gpu, 72, 82));
+  const cpuTempLevel = levelFor(temperatures.cpu, 75, 88);
+  const gpuTempLevel = levelFor(temperatures.gpu, 72, 82);
+  setRowLevel('.temperature-row--cpu', cpuTempLevel);
+  setRowLevel('.temperature-row--gpu', gpuTempLevel);
+  setLevel('temperatures', worstLevel(cpuTempLevel, gpuTempLevel));
   setText('cpu-value', formatPercent(cpu.value));
   setText('cpu-detail', cpu.user === null || cpu.user === undefined ? 'Charge globale' : `${formatPercent(cpu.user)} % utilisateur`);
   setText('cpu-cores', cpu.cores ? `${cpu.cores} cœurs` : '— cœurs');
@@ -336,9 +350,14 @@ function updateMain(metrics) {
   appendHistory('ram', ram.value);
   updateSparkline('ram-sparkline', 'ram');
 
+  setText('cpu-temp', formatTemperature(temperatures.cpu));
   setText('gpu-temp', formatTemperature(temperatures.gpu));
+  const hasCpuTemperature = temperatures.cpu !== null && temperatures.cpu !== undefined && Number.isFinite(Number(temperatures.cpu));
   const hasGpuTemperature = temperatures.gpu !== null && temperatures.gpu !== undefined && Number.isFinite(Number(temperatures.gpu));
-  setText('temperature-note', hasGpuTemperature ? 'Température GPU fournie par le pilote graphique.' : 'Température GPU non exposée par Windows ou le pilote.');
+  if (hasCpuTemperature && hasGpuTemperature) setText('temperature-note', 'Mesurées par la carte mère et le pilote graphique.');
+  else if (hasCpuTemperature) setText('temperature-note', 'CPU mesuré par la carte mère · GPU non exposé par Windows ou le pilote.');
+  else if (hasGpuTemperature) setText('temperature-note', 'GPU mesuré par le pilote graphique · CPU non exposé par cette carte mère.');
+  else setText('temperature-note', 'Non exposées par cette carte mère ni par le pilote graphique.');
 
   setText('network-download', formatRate(network.download));
   setText('network-upload', formatRate(network.upload));

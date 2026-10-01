@@ -69,7 +69,7 @@
             <label class="check-item"><input type="checkbox" data-group="cards" data-key="cpu" checked /> <span>CPU</span></label>
             <label class="check-item"><input type="checkbox" data-group="cards" data-key="gpu" checked /> <span>GPU</span></label>
             <label class="check-item"><input type="checkbox" data-group="cards" data-key="ram" checked /> <span>RAM</span></label>
-            <label class="check-item"><input type="checkbox" data-group="cards" data-key="temperatures" checked /> <span>Température GPU</span></label>
+            <label class="check-item"><input type="checkbox" data-group="cards" data-key="temperatures" checked /> <span>Températures</span></label>
             <label class="check-item"><input type="checkbox" data-group="cards" data-key="network" checked /> <span>Réseau</span></label>
             <label class="check-item"><input type="checkbox" data-group="cards" data-key="storage" checked /> <span>Stockage</span></label>
             <label class="check-item"><input type="checkbox" data-group="cards" data-key="fps" /> <span>FPS (mode administrateur)</span></label>
@@ -85,7 +85,7 @@
             <label class="check-item"><input type="checkbox" data-group="overlay" data-key="cpu" checked /> <span>CPU</span></label>
             <label class="check-item"><input type="checkbox" data-group="overlay" data-key="gpu" checked /> <span>GPU</span></label>
             <label class="check-item"><input type="checkbox" data-group="overlay" data-key="ram" checked /> <span>RAM</span></label>
-            <label class="check-item"><input type="checkbox" data-group="overlay" data-key="temp" checked /> <span>Température GPU</span></label>
+            <label class="check-item"><input type="checkbox" data-group="overlay" data-key="temp" checked /> <span>Températures</span></label>
             <label class="check-item"><input type="checkbox" data-group="overlay" data-key="network" checked /> <span>Réseau</span></label>
             <label class="check-item"><input type="checkbox" data-group="overlay" data-key="storage" checked /> <span>Disque</span></label>
             <label class="check-item"><input type="checkbox" data-group="overlay" data-key="fps" /> <span>FPS (mode administrateur)</span></label>
@@ -155,11 +155,14 @@
             <div class="metric-card-header">
               <div class="metric-heading">
                 <span class="metric-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5a2 2 0 1 1 4 0v8.2a4 4 0 1 1-4 0z" /><path d="M12 9v6" /></svg></span>
-                <span class="metric-label">Température GPU</span>
+                <span class="metric-label">Températures</span>
               </div>
             </div>
-            <div class="metric-value-line"><strong id="gpu-temp" class="metric-value">—</strong></div>
-            <div id="temperature-note" class="metric-note">Température GPU non exposée par Windows ou le pilote.</div>
+            <div class="temperature-rows">
+              <div class="temperature-row temperature-row--cpu" data-level="ok"><span class="temperature-row-label">CPU</span><strong id="cpu-temp">—</strong></div>
+              <div class="temperature-row temperature-row--gpu" data-level="ok"><span class="temperature-row-label">GPU</span><strong id="gpu-temp">—</strong></div>
+            </div>
+            <div id="temperature-note" class="metric-note">Détection en cours.</div>
           </article>
 
           <article class="metric-card metric-card--network" data-card="network" data-level="ok">
