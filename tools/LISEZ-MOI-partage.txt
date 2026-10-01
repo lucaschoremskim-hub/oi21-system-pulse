@@ -43,7 +43,10 @@ La compatibilité avec les jeux protégés par un anti-triche n'est pas garantie
 Limites
 - La charge GPU est mesurée sur toutes les cartes ; sa température seulement sur NVIDIA ("N/D" sinon).
 - La température CPU n'est pas exposée par toutes les cartes mères ("N/D" alors, honnêtement, plutôt
-  qu'une fausse valeur) : aucun lien avec les droits administrateur.
+  qu'une fausse valeur). Pour l'avoir quand même : installer et lancer HWiNFO64 (gratuit, à part,
+  hwinfo.com) avec son option "Shared Memory Support" activée, ET relancer System Pulse en
+  administrateur (même bouton que pour les FPS) : HWiNFO protège son partage par ce même niveau
+  de droits. Sa version gratuite limite ce partage à 12 h après son propre démarrage.
 - Un lecteur vide ou un disque réseau n'est pas affiché.
 
 Pour arrêter : fermer la fenêtre (l'overlay se ferme avec elle).

@@ -35,13 +35,13 @@ node tests\ui-native.mjs  <dossier-captures>   # fenêtre principale (27 vérifi
 node tests\ui-overlay.mjs <dossier-captures>   # overlay réel (16)
 node tests\ui-update.mjs  <dossier-captures>   # vérification de mise à jour (5)
 node tests\ui-gpu.mjs     <dossier-captures>   # repli GPU par compteurs Windows (4)
-node tests\ui-cpu-temp.mjs <dossier-captures>  # température CPU, niveaux d'alerte, cas « non exposée » (14)
+node tests\ui-cpu-temp.mjs <dossier-captures>  # température CPU (HWiNFO, ACPI, niveaux, N/D) (16)
 ```
 
 ## Publier une version
 
 1. Changer `<Version>` dans `SystemPulse.csproj`, commit, push.
-2. `git tag v2.4.0 && git push --tags`.
+2. `git tag v2.5.0 && git push --tags`.
 
 GitHub Actions (`.github/workflows/release.yml`) compile, crée la Release (zip + SHA-256), met à jour `site/version.json` ; Vercel redéploie le site. Les applications déjà installées affichent alors « Version x.y.z disponible ».
 
@@ -60,7 +60,11 @@ GitHub Actions (`.github/workflows/release.yml`) compile, crée la Release (zip 
 ## Limites connues
 
 - GPU : charge mesurée sur toutes les cartes (compteurs Windows « GPU Engine » ; `nvidia-smi` en priorité si présent). Température : cartes NVIDIA uniquement, « N/D » sinon.
-- Température CPU : zones thermiques ACPI (`root\WMI`, `MSAcpi_ThermalZoneTemperature`), sans droits administrateur ni pilote tiers. Beaucoup de cartes mères de bureau n'exposent rien ici (capteurs non décrits à l'ACPI) : « N/D » alors, honnêtement, plutôt qu'une fausse valeur — c'est le cas sur la carte mère utilisée pour développer ce projet. Une vraie mesure fiable sur tout matériel exigerait un pilote comme celui de LibreHardwareMonitor, qui échoue au chargement (`ERROR_DRIVER_BLOCKED`, 0xE1) sur un Windows à jour : Microsoft bloque ce pilote par défaut depuis 2022-2023 (liste des pilotes vulnérables), admin ou non. Alternative si besoin d'une vraie mesure : faire tourner HWiNFO64 à côté (non intégré ici).
+- Température CPU, dans l'ordre : (1) [HWiNFO64](https://www.hwinfo.com/) s'il tourne à côté (`HwInfoBridge.cs` lit sa mémoire partagée, lecture seule — mécanisme officiel, le même qu'utilisent Rainmeter ou MSI Afterburner) ; sinon (2) les zones thermiques ACPI (`root\WMI`, `MSAcpi_ThermalZoneTemperature`), sans droits administrateur ni pilote tiers, mais souvent absentes sur les PC de bureau (capteurs non décrits à l'ACPI) : « N/D » alors, honnêtement, plutôt qu'une fausse valeur — c'est le cas sur la carte mère utilisée pour développer ce projet.
+  - HWiNFO64 n'est pas intégré ni redistribué (logiciel fermé) : à installer et lancer soi-même, avec « Shared Memory Support » activé dans ses réglages.
+  - Vérifié ici (HWiNFO 8.54) : sa mémoire partagée n'est lisible, même en lecture seule, que si **System Pulse tourne aussi en administrateur** (même bouton que pour les FPS) — HWiNFO protège son partage par une liste de contrôle d'accès qui exige le même niveau de droits. Sans ça, repli automatique sur les zones ACPI.
+  - La version gratuite de HWiNFO limite ce partage à 12 h après son propre démarrage (relancer HWiNFO, ou la version Pro, pour lever la limite).
+  - Mesure directe universelle (type LibreHardwareMonitor) testée et écartée : son pilote échoue au chargement (`ERROR_DRIVER_BLOCKED`, 0xE1) sur un Windows à jour — Microsoft le bloque par défaut depuis 2022-2023 (liste des pilotes vulnérables), admin ou non.
 - Exécutable non signé : SmartScreen peut afficher un avertissement.
 - « Relancer en administrateur » : la confirmation Windows (UAC) n'est pas testée de bout en bout.
 - Sur un PC sans WebView2 Runtime, un message l'indique et donne le lien d'installation.

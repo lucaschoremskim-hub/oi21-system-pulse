@@ -50,6 +50,7 @@ namespace SystemPulse
         private bool cpuTempUnsupported;
         private long lastCpuTempRefresh;
         private int cpuTempBusy;
+        private readonly HwInfoBridge hwinfo = new HwInfoBridge();
 
         private readonly string hostname = Environment.MachineName;
         private readonly string systemRoot;
@@ -273,11 +274,12 @@ namespace SystemPulse
             Task.Run(delegate { try { RefreshGpu(); } finally { Interlocked.Exchange(ref gpuBusy, 0); } });
         }
 
-        // Température CPU : zones thermiques ACPI exposées par la carte mère (rootWMI, MSAcpi_ThermalZoneTemperature).
-        // Beaucoup de cartes mères de bureau n'exposent rien ici (capteurs tiers non décrits à l'ACPI) : "N/D" alors,
-        // honnêtement, plutôt qu'une fausse mesure. Pas d'alternative fiable sans droits administrateur ET sans
-        // dépendre d'un pilote tiers que Windows bloque désormais par défaut (liste des pilotes vulnérables) :
-        // voir la note dans le README avant d'essayer d'en ajouter une.
+        // Température CPU, dans l'ordre : (1) HWiNFO64 s'il tourne à côté (mémoire partagée, lecture seule,
+        // nécessite que System Pulse tourne aussi en administrateur — voir HwInfoBridge.cs) ; sinon (2) les zones
+        // thermiques ACPI exposées par la carte mère (root\WMI, MSAcpi_ThermalZoneTemperature), gratuites et sans
+        // droits mais souvent absentes sur les PC de bureau (capteurs tiers non décrits à l'ACPI) : "N/D" alors,
+        // honnêtement, plutôt qu'une fausse mesure. Pas d'autre alternative sans dépendre d'un pilote que Windows
+        // bloque désormais par défaut (liste des pilotes vulnérables) : voir la note dans le README.
         private void RefreshCpuTemp()
         {
 #if TESTHOOKS
@@ -289,7 +291,15 @@ namespace SystemPulse
                 return;
             }
             if (Environment.GetEnvironmentVariable("SYSTEMPULSE_CPU_TEMP_MODE") == "unsupported") { cpuTemp = null; cpuTempUnsupported = true; return; }
+            if (Environment.GetEnvironmentVariable("SYSTEMPULSE_CPU_TEMP_MODE") == "no-hwinfo") { RefreshCpuTempAcpi(); return; }
 #endif
+            double? fromHwInfo = hwinfo.TryReadCpuTemperature();
+            if (fromHwInfo.HasValue) { cpuTemp = fromHwInfo; return; }
+            RefreshCpuTempAcpi();
+        }
+
+        private void RefreshCpuTempAcpi()
+        {
             if (cpuTempUnsupported) return;
             try
             {
@@ -402,6 +412,6 @@ namespace SystemPulse
             return root;
         }
 
-        public void Dispose() { }
+        public void Dispose() { hwinfo.Dispose(); }
     }
 }

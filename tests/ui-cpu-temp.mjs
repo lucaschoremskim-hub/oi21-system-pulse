@@ -1,6 +1,7 @@
-// Test de la température CPU (zones thermiques ACPI, root\WMI MSAcpi_ThermalZoneTemperature) : valeur forcée pour un
-// résultat déterministe (le test tourne aussi sur des cartes mères qui n'exposent rien, comme celle-ci), niveaux d'alerte
-// par ligne (CPU et GPU distincts) et carte au pire des deux, et le cas honnête « non exposée » (N/D, pas de fausse valeur).
+// Test de la température CPU (HWiNFO64 si présent, sinon zones ACPI root\WMI MSAcpi_ThermalZoneTemperature) :
+// valeur forcée pour un résultat déterministe (le test tourne aussi sur des cartes mères qui n'exposent rien,
+// comme celle-ci), niveaux d'alerte par ligne (CPU et GPU distincts), carte au pire des deux, cas honnête
+// « non exposée » (N/D, pas de fausse valeur), et les deux chemins réels (ACPI seul, puis sans rien forcer).
 // Lancer : node tests/ui-cpu-temp.mjs [dossier-des-captures]   (nécessite : dotnet build -c Test -p:Platform=x64 -o out-test/SystemPulse)
 import path from 'node:path';
 import { launch, connect, sleep, reporter } from './lib.mjs';
@@ -17,8 +18,9 @@ try {
   let m = null;
   for (let i = 0; i < 20 && !(m && m.temperatures && m.temperatures.cpu !== null); i += 1) { await sleep(500); m = await ui.ev('window.systemPulse.getMetrics()'); }
   check('température CPU forcée lue (52 °C)', m && m.temperatures.cpu === 52, JSON.stringify(m && m.temperatures));
-  check('affichée dans la carte', (await ui.ev(`document.getElementById('cpu-temp').textContent`)) === '52 °C');
-  await sleep(500);
+  let shown = '';
+  for (let i = 0; i < 10 && shown !== '52 °C'; i += 1) { await sleep(300); shown = await ui.ev(`document.getElementById('cpu-temp').textContent`); }
+  check('affichée dans la carte', shown === '52 °C', shown);
   check('niveau CPU ok', (await rowLevel(ui, '.temperature-row--cpu')) === 'ok');
   check('carte au niveau ok', (await cardLevel(ui)) === 'ok');
   await ui.shot(path.join(shots, 'nat-cpu-temp-ok.png'));
@@ -55,6 +57,26 @@ try {
   check('niveau ok (pas d\'alerte sur une valeur absente)', (await rowLevel(ui, '.temperature-row--cpu')) === 'ok');
   const note = await ui.ev(`document.getElementById('temperature-note').textContent`);
   check('note honnête (CPU non exposé mentionné)', note.includes('CPU') && note.includes('non exposé'), note);
+} finally { await app.stop(); }
+
+// 4. Chemin ACPI réel (sans la mémoire partagée de HWiNFO), sans valeur forcée : doit s'exécuter sans erreur,
+// quel que soit le résultat (N/D sur une carte mère qui n'expose rien, un nombre plausible sinon) -------------
+app = launch(9840, { SYSTEMPULSE_CPU_TEMP_MODE: 'no-hwinfo' });
+try {
+  const ui = await connect(9840);
+  await sleep(3500);
+  const text = await ui.ev(`document.getElementById('cpu-temp').textContent`);
+  check('zones ACPI lues sans erreur (N/D ou un nombre plausible)', text === 'N/D' || /^\d{1,3} °C$/.test(text), text);
+} finally { await app.stop(); }
+
+// 5. Environnement réel, sans rien forcer : HWiNFO (si lancé à côté) n'est lisible qu'en administrateur, donc
+// absent ici (l'appli de test tourne sans droits élevés, comme un lancement normal) ; repli sur les zones ACPI.
+app = launch(9840, {});
+try {
+  const ui = await connect(9840);
+  await sleep(3500);
+  const text = await ui.ev(`document.getElementById('cpu-temp').textContent`);
+  check('environnement réel : lecture cohérente (N/D ou un nombre plausible)', text === 'N/D' || /^\d{1,3} °C$/.test(text), text);
 } finally { await app.stop(); }
 
 done();
