@@ -126,7 +126,7 @@ function fitGrid() {
   const grid = document.querySelector('.metrics-grid');
   const content = document.querySelector('.dashboard-content');
   if (isOverlay || !grid || !content || grid.offsetParent === null) return;
-  const signature = [innerWidth, innerHeight, document.querySelectorAll('[data-card]:not([hidden])').length, visibleDrives().length, $('fps-note')?.textContent, $('fps-admin')?.hidden].join('|');
+  const signature = [innerWidth, innerHeight, document.querySelectorAll('[data-card]:not([hidden])').length, visibleDrives().length, $('fps-note')?.textContent, $('fps-admin')?.hidden, $('temp-admin')?.hidden].join('|');
   if (signature === lastFitSignature) return;
   lastFitSignature = signature;
   grid.style.zoom = '1';
@@ -354,10 +354,21 @@ function updateMain(metrics) {
   setText('gpu-temp', formatTemperature(temperatures.gpu));
   const hasCpuTemperature = temperatures.cpu !== null && temperatures.cpu !== undefined && Number.isFinite(Number(temperatures.cpu));
   const hasGpuTemperature = temperatures.gpu !== null && temperatures.gpu !== undefined && Number.isFinite(Number(temperatures.gpu));
-  if (hasCpuTemperature && hasGpuTemperature) setText('temperature-note', 'Mesurées par la carte mère et le pilote graphique.');
-  else if (hasCpuTemperature) setText('temperature-note', 'CPU mesuré par la carte mère · GPU non exposé par Windows ou le pilote.');
-  else if (hasGpuTemperature) setText('temperature-note', 'GPU mesuré par le pilote graphique · CPU non exposé par cette carte mère.');
-  else setText('temperature-note', 'Non exposées par cette carte mère ni par le pilote graphique.');
+  const cpuSourceLabel = temperatures.cpuSource === 'hwinfo' ? 'HWiNFO64' : 'la carte mère';
+  const hwinfoBlocked = temperatures.cpuHwInfoStatus === 'accessDenied' && !hasCpuTemperature;
+  const admin = $('temp-admin');
+  if (admin) admin.hidden = !hwinfoBlocked;
+  if (hwinfoBlocked) {
+    setText('temperature-note', 'HWiNFO64 détecté, mais sa mesure exige que System Pulse tourne aussi en administrateur.');
+  } else if (hasCpuTemperature && hasGpuTemperature) {
+    setText('temperature-note', `CPU mesuré par ${cpuSourceLabel} · GPU par le pilote graphique.`);
+  } else if (hasCpuTemperature) {
+    setText('temperature-note', `CPU mesuré par ${cpuSourceLabel} · GPU non exposé par Windows ou le pilote.`);
+  } else if (hasGpuTemperature) {
+    setText('temperature-note', 'GPU mesuré par le pilote graphique · CPU non exposé par cette carte mère.');
+  } else {
+    setText('temperature-note', 'Non exposées par cette carte mère ni par le pilote graphique.');
+  }
 
   setText('network-download', formatRate(network.download));
   setText('network-upload', formatRate(network.upload));
@@ -424,6 +435,8 @@ function applyState(state) {
       intervalSelect.value = String(state.intervalMs);
       intervalSelect.dataset.appliedInterval = String(state.intervalMs);
     }
+    const hwinfoToggle = $('launch-hwinfo-toggle');
+    if (hwinfoToggle) hwinfoToggle.checked = Boolean(state.launchHwInfo);
   }
 }
 
@@ -481,6 +494,23 @@ function initMain() {
     }
   });
   $('fps-admin')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    button.textContent = 'Confirmez dans la fenêtre Windows…';
+    try {
+      await api.relaunchAsAdmin();
+    } catch (_error) {
+      button.disabled = false;
+      button.textContent = 'Relancer en administrateur';
+      showFeedback('Le relancement en administrateur a échoué.');
+    }
+  });
+  $('launch-hwinfo-toggle')?.addEventListener('change', async (event) => {
+    const toggle = event.target;
+    try { await api.setLaunchHwInfo(toggle.checked); }
+    catch (_error) { toggle.checked = !toggle.checked; showFeedback('Ce réglage n’a pas pu être enregistré.'); }
+  });
+  $('temp-admin')?.addEventListener('click', async (event) => {
     const button = event.currentTarget;
     button.disabled = true;
     button.textContent = 'Confirmez dans la fenêtre Windows…';

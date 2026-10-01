@@ -8,7 +8,7 @@
     // Ouvert hors de l'application (aperçu dans un navigateur) : API inerte.
     var none = function () { return Promise.resolve(null); };
     window.systemPulse = { getState: none, getMetrics: none, setOverlayVisible: none, setInterval: none, setVisibility: none,
-      setOverlayMovable: none, relaunchAsAdmin: none, openUpdate: none, windowAction: function () {}, moveOverlay: function () {}, endOverlayMove: function () {},
+      setOverlayMovable: none, relaunchAsAdmin: none, openUpdate: none, setLaunchHwInfo: none, windowAction: function () {}, moveOverlay: function () {}, endOverlayMove: function () {},
       fitOverlay: function () {}, onMetrics: function () { return function () {}; }, onState: function () { return function () {}; } };
     return;
   }
@@ -56,6 +56,7 @@
     setOverlayMovable: function (movable) { return call('setOverlayMovable', Boolean(movable)); },
     relaunchAsAdmin: function () { return call('relaunchAsAdmin'); },
     openUpdate: function () { return call('openUpdate'); },
+    setLaunchHwInfo: function (on) { return call('setLaunchHwInfo', Boolean(on)); },
     // La fenêtre a sa barre de titre Windows ; l'overlay est dessiné par l'hôte : ces appels n'ont plus d'objet.
     windowAction: function () {},
     moveOverlay: function () {},

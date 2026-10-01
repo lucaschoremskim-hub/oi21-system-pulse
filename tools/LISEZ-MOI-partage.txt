@@ -40,13 +40,22 @@ Les FPS sont mesurés avec PresentMon (Intel, licence MIT, dossier vendor), qui 
 lancer l'application en administrateur. La carte FPS propose un bouton pour la relancer ainsi.
 La compatibilité avec les jeux protégés par un anti-triche n'est pas garantie.
 
-Limites
+Température CPU réelle (optionnel)
+La température CPU n'est pas exposée par toutes les cartes mères ("N/D" alors, honnêtement,
+plutôt qu'une fausse valeur). Pour l'avoir quand même :
+1. Installer HWiNFO64 (gratuit, à part : hwinfo.com). Case "Affichage" > "Lancer HWiNFO64 au
+   démarrage" cochée par défaut : System Pulse le relance tout seul ensuite s'il n'est pas
+   déjà ouvert.
+2. Au tout premier lancement de HWiNFO, son propre écran de démarrage apparaît : choisir
+   "Sensors only", et cocher ses options "Minimize on Startup". Dans ses Réglages, activer
+   "Shared Memory Support". Il se souvient de ces choix pour la prochaine fois.
+3. Relancer System Pulse en administrateur (même bouton que pour les FPS) : HWiNFO protège
+   son partage par ce même niveau de droits, même pour une simple lecture.
+Limite de la version gratuite de HWiNFO : ce partage s'arrête 12 h après son propre démarrage
+(le relancer, ou passer à la version payante pour lever la limite).
+
+Autres limites
 - La charge GPU est mesurée sur toutes les cartes ; sa température seulement sur NVIDIA ("N/D" sinon).
-- La température CPU n'est pas exposée par toutes les cartes mères ("N/D" alors, honnêtement, plutôt
-  qu'une fausse valeur). Pour l'avoir quand même : installer et lancer HWiNFO64 (gratuit, à part,
-  hwinfo.com) avec son option "Shared Memory Support" activée, ET relancer System Pulse en
-  administrateur (même bouton que pour les FPS) : HWiNFO protège son partage par ce même niveau
-  de droits. Sa version gratuite limite ce partage à 12 h après son propre démarrage.
 - Un lecteur vide ou un disque réseau n'est pas affiché.
 
 Pour arrêter : fermer la fenêtre (l'overlay se ferme avec elle).

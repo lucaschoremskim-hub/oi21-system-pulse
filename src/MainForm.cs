@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
@@ -119,6 +120,7 @@ namespace SystemPulse
                 core.Navigate("https://" + Host + "/index.html?view=main");
                 UpdateFpsMonitoring();
                 StartUpdateCheck();
+                StartHwInfoLaunch();
 #if TESTHOOKS
                 if (Environment.GetEnvironmentVariable("SYSTEMPULSE_NO_TIMER") == "1") return;
 #endif
@@ -163,6 +165,7 @@ namespace SystemPulse
             s["platform"] = "win32";
             s["version"] = Version;
             s["update"] = updateInfo;
+            s["launchHwInfo"] = prefs.LaunchHwInfo;
             return s;
         }
 
@@ -189,6 +192,7 @@ namespace SystemPulse
                 case "setVisibility": result = SetVisibility(payload as Dictionary<string, object>); break;
                 case "relaunchAsAdmin": result = RelaunchAsAdmin(); break;
                 case "openUpdate": result = OpenUpdate(); break;
+                case "setLaunchHwInfo": result = SetLaunchHwInfo(payload is bool && (bool)payload); break;
                 default: break; // windowAction et autres : rien à faire (barre de titre native)
             }
             double? id = Json.GetNumber(msg, "id");
@@ -240,6 +244,23 @@ namespace SystemPulse
             if (info == null || IsDisposed) return;
             updateInfo = info;
             BroadcastState();
+        }
+
+        private void StartHwInfoLaunch()
+        {
+#if TESTHOOKS
+            if (Environment.GetEnvironmentVariable("SYSTEMPULSE_ALLOW_HWINFO_LAUNCH") != "1") return; // jamais pendant les tests
+#endif
+            if (!prefs.LaunchHwInfo) return;
+            Task.Run(delegate { HwInfoLauncher.LaunchIfInstalled(); });
+        }
+
+        private bool SetLaunchHwInfo(bool on)
+        {
+            prefs.LaunchHwInfo = on;
+            prefs.Save();
+            if (on) StartHwInfoLaunch();
+            return on;
         }
 
         private bool OpenUpdate()

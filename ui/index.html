@@ -100,6 +100,9 @@
             </div>
             <div id="drive-checks"><span class="display-note">Détection des disques…</span></div>
           </div>
+          <div class="display-group" data-group="integrations">
+            <label class="check-item"><input id="launch-hwinfo-toggle" type="checkbox" /> <span>Lancer HWiNFO64 au démarrage (si installé) — pour la température CPU</span></label>
+          </div>
           <div class="display-footer">
             <p class="display-note">Vos choix sont enregistrés et retrouvés au prochain lancement.</p>
             <button id="display-close" class="primary-button" type="button">Terminé</button>
@@ -163,6 +166,7 @@
               <div class="temperature-row temperature-row--gpu" data-level="ok"><span class="temperature-row-label">GPU</span><strong id="gpu-temp">—</strong></div>
             </div>
             <div id="temperature-note" class="metric-note">Détection en cours.</div>
+            <button id="temp-admin" class="secondary-button fps-admin" type="button" hidden>Relancer en administrateur</button>
           </article>
 
           <article class="metric-card metric-card--network" data-card="network" data-level="ok">

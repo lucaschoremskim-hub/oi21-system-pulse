@@ -47,6 +47,8 @@ namespace SystemPulse
         private bool gpuInfoRead;
 
         private double? cpuTemp;
+        private bool cpuTempFromHwInfo;
+        private string forcedHwInfoStatus; // tests uniquement : simule un statut HWiNFO sans vraie installation
         private bool cpuTempUnsupported;
         private long lastCpuTempRefresh;
         private int cpuTempBusy;
@@ -288,13 +290,18 @@ namespace SystemPulse
             {
                 double v;
                 cpuTemp = double.TryParse(forced, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out v) ? (double?)v : null;
+                cpuTempFromHwInfo = false;
                 return;
             }
-            if (Environment.GetEnvironmentVariable("SYSTEMPULSE_CPU_TEMP_MODE") == "unsupported") { cpuTemp = null; cpuTempUnsupported = true; return; }
-            if (Environment.GetEnvironmentVariable("SYSTEMPULSE_CPU_TEMP_MODE") == "no-hwinfo") { RefreshCpuTempAcpi(); return; }
+            if (Environment.GetEnvironmentVariable("SYSTEMPULSE_CPU_TEMP_MODE") == "unsupported") { cpuTemp = null; cpuTempFromHwInfo = false; cpuTempUnsupported = true; return; }
+            if (Environment.GetEnvironmentVariable("SYSTEMPULSE_CPU_TEMP_MODE") == "no-hwinfo") { cpuTempFromHwInfo = false; RefreshCpuTempAcpi(); return; }
+            // Simule HWiNFO détecté mais illisible (droits insuffisants), sans dépendre d'une vraie installation.
+            if (Environment.GetEnvironmentVariable("SYSTEMPULSE_CPU_TEMP_MODE") == "hwinfo-denied")
+            { cpuTemp = null; cpuTempFromHwInfo = false; cpuTempUnsupported = true; forcedHwInfoStatus = "accessDenied"; return; }
 #endif
             double? fromHwInfo = hwinfo.TryReadCpuTemperature();
-            if (fromHwInfo.HasValue) { cpuTemp = fromHwInfo; return; }
+            if (fromHwInfo.HasValue) { cpuTemp = fromHwInfo; cpuTempFromHwInfo = true; return; }
+            cpuTempFromHwInfo = false;
             RefreshCpuTempAcpi();
         }
 
@@ -385,7 +392,11 @@ namespace SystemPulse
 
             Dictionary<string, object> temps = new Dictionary<string, object>();
             temps["cpu"] = NullableRound1(cpuTemp);
+            temps["cpuSource"] = cpuTemp.HasValue ? (cpuTempFromHwInfo ? "hwinfo" : "acpi") : null;
             temps["gpu"] = NullableRound1(gpuTemp);
+            // "accessDenied" : HWiNFO tourne mais sa mémoire partagée exige que System Pulse tourne aussi en
+            // administrateur (voir HwInfoBridge.cs) — sert à guider l'utilisateur plutôt qu'un simple "N/D".
+            temps["cpuHwInfoStatus"] = forcedHwInfoStatus ?? (hwinfo.Status.ToString().Substring(0, 1).ToLowerInvariant() + hwinfo.Status.ToString().Substring(1));
             root["temperatures"] = temps;
 
             Dictionary<string, object> net = new Dictionary<string, object>();

@@ -22,6 +22,9 @@ namespace SystemPulse
         public Dictionary<string, bool> Drives = new Dictionary<string, bool>();
         public int? OverlayX;
         public int? OverlayY;
+        // Lancer HWiNFO64 avec System Pulse, s'il est installé (pour une vraie température CPU : voir HwInfoBridge.cs).
+        // Par défaut oui : sans HWiNFO installé, ça ne fait simplement rien.
+        public bool LaunchHwInfo = true;
 
         public Preferences()
         {
@@ -97,6 +100,7 @@ namespace SystemPulse
                 double? x = Json.GetNumber(pos, "x");
                 double? y = Json.GetNumber(pos, "y");
                 if (x.HasValue && y.HasValue) { prefs.OverlayX = (int)Math.Round(x.Value); prefs.OverlayY = (int)Math.Round(y.Value); }
+                prefs.LaunchHwInfo = Json.GetBool(root, "launchHwInfo", true);
             }
             catch (Exception)
             {
@@ -120,6 +124,7 @@ namespace SystemPulse
                     pos["y"] = OverlayY.Value;
                     root["overlayPosition"] = pos;
                 }
+                root["launchHwInfo"] = LaunchHwInfo;
                 File.WriteAllText(FilePath(), Json.Serialize(root));
             }
             catch (Exception)

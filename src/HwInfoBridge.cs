@@ -22,6 +22,10 @@ namespace SystemPulse
     // vérifié ici contre une vraie installation HWiNFO 8.54) : "Global\HWiNFO_SENS_SM2", en-tête à décalages
     // explicites (pour rester compatible si HWiNFO ajoute des champs), tableau de "capteurs" (regroupements,
     // ex. "CPU [#0] : Intel Core i5-7600K : DTS") et tableau de "lectures" (une valeur, avec son capteur parent).
+    // État du dernier essai de lecture : distingue « HWiNFO ne tourne pas » (rien à faire) de
+    // « HWiNFO tourne mais refuse l'accès » (il manque les droits administrateur), pour guider l'utilisateur.
+    internal enum HwInfoStatus { NotRunning, AccessDenied, Ok }
+
     internal sealed class HwInfoBridge : IDisposable
     {
         private const string MapName = @"Global\HWiNFO_SENS_SM2";
@@ -31,6 +35,7 @@ namespace SystemPulse
 
         private MemoryMappedFile map;
         private MemoryMappedViewAccessor view;
+        public HwInfoStatus Status { get; private set; }
 
         private static string ReadFixedString(MemoryMappedViewAccessor v, long offset, int length)
         {
@@ -43,15 +48,25 @@ namespace SystemPulse
 
         private bool EnsureOpen()
         {
-            if (view != null) return true;
+            if (view != null) { Status = HwInfoStatus.Ok; return true; }
+            bool deniedGlobal = false;
             try { map = MemoryMappedFile.OpenExisting(MapName); }
-            catch (Exception)
+            catch (UnauthorizedAccessException) { deniedGlobal = true; }
+            catch (Exception) { }
+            if (map == null)
             {
                 try { map = MemoryMappedFile.OpenExisting(MapNameLocal); }
-                catch (Exception) { return false; } // HWiNFO non lancé, partage désactivé, ou droits insuffisants
+                catch (UnauthorizedAccessException) { Status = HwInfoStatus.AccessDenied; return false; }
+                catch (Exception)
+                {
+                    // Pas trouvé non plus en local : HWiNFO ne tourne pas (ou pas avec le partage activé),
+                    // sauf si la version "Global\" existait mais était refusée (droits insuffisants côté HWiNFO).
+                    Status = deniedGlobal ? HwInfoStatus.AccessDenied : HwInfoStatus.NotRunning;
+                    return false;
+                }
             }
-            try { view = map.CreateViewAccessor(); return true; }
-            catch (Exception) { Close(); return false; }
+            try { view = map.CreateViewAccessor(); Status = HwInfoStatus.Ok; return true; }
+            catch (Exception) { Close(); Status = HwInfoStatus.NotRunning; return false; }
         }
 
         private void Close()
@@ -63,7 +78,7 @@ namespace SystemPulse
         public double? TryReadCpuTemperature()
         {
             try { return ReadCpuTemperature(); }
-            catch (Exception) { Close(); return null; } // la mémoire a pu disparaître pendant la lecture
+            catch (Exception) { Close(); Status = HwInfoStatus.NotRunning; return null; } // la mémoire a pu disparaître pendant la lecture
         }
 
         private double? ReadCpuTemperature()
