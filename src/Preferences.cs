@@ -25,6 +25,9 @@ namespace SystemPulse
         // Lancer HWiNFO64 avec System Pulse, s'il est installé (pour une vraie température CPU : voir HwInfoBridge.cs).
         // Par défaut oui : sans HWiNFO installé, ça ne fait simplement rien.
         public bool LaunchHwInfo = true;
+        // Rechercher les mises à jour de pilotes au démarrage (agent Windows Update intégré : voir DriverScan.cs).
+        // Par défaut oui ; l'utilisateur peut le désactiver (la recherche reste disponible à la demande dans l'onglet Pilotes).
+        public bool ScanDriversOnLaunch = true;
 
         public Preferences()
         {
@@ -101,6 +104,7 @@ namespace SystemPulse
                 double? y = Json.GetNumber(pos, "y");
                 if (x.HasValue && y.HasValue) { prefs.OverlayX = (int)Math.Round(x.Value); prefs.OverlayY = (int)Math.Round(y.Value); }
                 prefs.LaunchHwInfo = Json.GetBool(root, "launchHwInfo", true);
+                prefs.ScanDriversOnLaunch = Json.GetBool(root, "scanDriversOnLaunch", true);
             }
             catch (Exception)
             {
@@ -125,6 +129,7 @@ namespace SystemPulse
                     root["overlayPosition"] = pos;
                 }
                 root["launchHwInfo"] = LaunchHwInfo;
+                root["scanDriversOnLaunch"] = ScanDriversOnLaunch;
                 File.WriteAllText(FilePath(), Json.Serialize(root));
             }
             catch (Exception)

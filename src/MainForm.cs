@@ -25,6 +25,7 @@ namespace SystemPulse
         private readonly Preferences prefs;
         private readonly MetricsCollector metrics = new MetricsCollector();
         private readonly FpsMonitor fps;
+        private readonly DriverScanner driverScanner = new DriverScanner();
         private readonly Timer timer = new Timer();
         private OverlayForm overlay;
         private int intervalMs = 1000;
@@ -121,6 +122,7 @@ namespace SystemPulse
                 UpdateFpsMonitoring();
                 StartUpdateCheck();
                 StartHwInfoLaunch();
+                StartDriverScan();
 #if TESTHOOKS
                 if (Environment.GetEnvironmentVariable("SYSTEMPULSE_NO_TIMER") == "1") return;
 #endif
@@ -166,6 +168,7 @@ namespace SystemPulse
             s["version"] = Version;
             s["update"] = updateInfo;
             s["launchHwInfo"] = prefs.LaunchHwInfo;
+            s["scanDriversOnLaunch"] = prefs.ScanDriversOnLaunch;
             return s;
         }
 
@@ -193,6 +196,10 @@ namespace SystemPulse
                 case "relaunchAsAdmin": result = RelaunchAsAdmin(); break;
                 case "openUpdate": result = OpenUpdate(); break;
                 case "setLaunchHwInfo": result = SetLaunchHwInfo(payload is bool && (bool)payload); break;
+                case "getDriverState": result = driverScanner.State.ToSnapshot(); break;
+                case "scanDrivers": result = ScanDrivers(); break;
+                case "openDriverUpdate": result = OpenDriverUpdate(); break;
+                case "setScanDriversOnLaunch": result = SetScanDriversOnLaunch(payload is bool && (bool)payload); break;
                 default: break; // windowAction et autres : rien à faire (barre de titre native)
             }
             double? id = Json.GetNumber(msg, "id");
@@ -260,6 +267,42 @@ namespace SystemPulse
             prefs.LaunchHwInfo = on;
             prefs.Save();
             if (on) StartHwInfoLaunch();
+            return on;
+        }
+
+        // ---- Pilotes -------------------------------------------------------------------------
+
+        private void StartDriverScan()
+        {
+#if TESTHOOKS
+            if (Environment.GetEnvironmentVariable("SYSTEMPULSE_ALLOW_DRIVER_SCAN") != "1") return; // jamais pendant les tests, sauf accord explicite
+#endif
+            if (!prefs.ScanDriversOnLaunch) return;
+            ScanDrivers();
+        }
+
+        private Dictionary<string, object> ScanDrivers()
+        {
+            bool started = driverScanner.Scan(delegate (DriverScanState state)
+            {
+                if (IsDisposed || !IsHandleCreated) return; // fenêtre fermée pendant le scan
+                try { BeginInvoke(new Action(delegate { PostEvent("drivers:update", state.ToSnapshot()); })); }
+                catch (ObjectDisposedException) { } catch (InvalidOperationException) { }
+            });
+            if (started) PostEvent("drivers:update", driverScanner.State.ToSnapshot()); // bascule immédiate sur « scanning »
+            return driverScanner.State.ToSnapshot();
+        }
+
+        private bool OpenDriverUpdate()
+        {
+            try { Process.Start(new ProcessStartInfo("ms-settings:windowsupdate") { UseShellExecute = true }); return true; }
+            catch (Exception) { return false; }
+        }
+
+        private bool SetScanDriversOnLaunch(bool on)
+        {
+            prefs.ScanDriversOnLaunch = on;
+            prefs.Save();
             return on;
         }
 
