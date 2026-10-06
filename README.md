@@ -1,10 +1,10 @@
 # Oi-21 System Pulse
 
-Moniteur Windows léger : CPU, GPU (toutes marques), RAM, température CPU et GPU (selon le matériel), réseau, tous les disques et FPS réels, avec un overlay déplaçable à poser par-dessus les jeux.
+Moniteur Windows léger : CPU, GPU (toutes marques), RAM, température CPU et GPU (selon le matériel), réseau, tous les disques et FPS réels, avec un overlay déplaçable à poser par-dessus les jeux. Un onglet « Pilotes » scanne au démarrage les pilotes installés et signale ceux à mettre à jour.
 
 **Téléchargement : https://oi21-system-pulse.vercel.app** (zip de 0,7 Mo, rien à installer, ouverture en ~0,5 s).
 
-Tout reste local : les mesures ne quittent jamais le PC. La seule requête réseau est la lecture de [`site/version.json`](site/version.json) au démarrage, pour signaler une nouvelle version.
+Tout reste local : les mesures ne quittent jamais le PC. Les seules requêtes réseau sont la lecture de [`site/version.json`](site/version.json) au démarrage (nouvelle version), et la recherche de mises à jour de pilotes auprès de Windows Update (voir ci-dessous) — désactivable dans « Affichage ».
 
 ## Fonctionnement
 
@@ -13,6 +13,7 @@ Tout reste local : les mesures ne quittent jamais le PC. La seule requête rése
 - **Overlay** : fenêtre transparente dessinée en GDI+ (`OverlayForm.cs`), clic traversant quand elle est verrouillée.
 - **Moteur** (`Program.cs`) : `--disable-features=msSmartScreenProtection --disable-gpu` (ouverture 2,5 s → 0,5 s ; CPU au repos 30 % → 8 % d'un coeur, mesuré).
 - **Préférences** : `%APPDATA%\SystemPulse\preferences.json`. Journal de démarrage : `journal.txt` au même endroit.
+- **Pilotes** (`DriverScan.cs`) : liste les pilotes installés (WMI, `Win32_PnPSignedDriver`), puis demande à l'agent Windows Update intégré (`Microsoft.Update.Session`, celui du panneau de configuration — aucun service tiers, aucun compte) s'il connaît une version plus récente pour chacun, par correspondance d'identifiant matériel. Tourne en arrière-plan (peut prendre jusqu'à une minute) ; l'onglet affiche l'état en direct et ne bloque jamais le reste de l'interface. Case « Affichage » > « Rechercher les mises à jour de pilotes au démarrage », cochée par défaut ; un bouton relance la recherche à la demande. System Pulse ne télécharge ni n'installe aucun pilote : un bouton ouvre Windows Update pour l'installation.
 
 Pourquoi .NET Framework 4.8 et pas .NET 8 : une appli WinForms .NET 8 autonome pèse ~66 Mo, contre 0,7 Mo ici, et la version « dépendante du runtime » obligerait à installer .NET 8. Le projet utilise tout de même le format moderne (`dotnet build`, C# récent).
 
@@ -37,6 +38,7 @@ node tests\ui-update.mjs  <dossier-captures>   # vérification de mise à jour (
 node tests\ui-gpu.mjs     <dossier-captures>   # repli GPU par compteurs Windows (4)
 node tests\ui-cpu-temp.mjs <dossier-captures>  # température CPU (HWiNFO, ACPI, niveaux, N/D) (16)
 node tests\ui-hwinfo-launch.mjs <dossier-captures>  # lancement de HWiNFO64, préférence, bouton admin (8)
+node tests\ui-drivers.mjs <dossier-captures>   # onglet Pilotes (scan simulé, sans WMI ni Windows Update)
 ```
 
 ## Publier une version
@@ -66,6 +68,7 @@ GitHub Actions (`.github/workflows/release.yml`) compile, crée la Release (zip 
   - Vérifié ici (HWiNFO 8.54) : sa mémoire partagée n'est lisible, même en lecture seule, que si **System Pulse tourne aussi en administrateur** (même bouton que pour les FPS) — HWiNFO protège son partage par une liste de contrôle d'accès qui exige le même niveau de droits. Sans ça, repli automatique sur les zones ACPI.
   - La version gratuite de HWiNFO limite ce partage à 12 h après son propre démarrage (relancer HWiNFO, ou la version Pro, pour lever la limite).
   - Mesure directe universelle (type LibreHardwareMonitor) testée et écartée : son pilote échoue au chargement (`ERROR_DRIVER_BLOCKED`, 0xE1) sur un Windows à jour — Microsoft le bloque par défaut depuis 2022-2023 (liste des pilotes vulnérables), admin ou non.
+- Pilotes : la correspondance entre une mise à jour Windows Update et un pilote installé se fait par identifiant matériel (`HardWareID` / `DriverHardwareID`) ; sans correspondance ou si Windows Update est inaccessible (hors ligne, service coupé par une politique), le pilote reste « Non vérifié » plutôt que marqué à tort « À jour ». Windows Update ne connaît pas forcément une mise à jour publiée seulement sur le site du fabricant.
 - Exécutable non signé : SmartScreen peut afficher un avertissement.
 - « Relancer en administrateur » : la confirmation Windows (UAC) n'est pas testée de bout en bout.
 - Sur un PC sans WebView2 Runtime, un message l'indique et donne le lien d'installation.

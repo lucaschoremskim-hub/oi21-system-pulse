@@ -15,6 +15,7 @@ let lastMetricsTimestamp = 0;
 let visibility = { cards: {}, overlay: {}, drives: {} };
 let lastDrives = [];
 let driveChecksSignature = '';
+let driverState = { status: 'idle', drivers: [], outdatedCount: 0, total: 0, lastScan: null, error: null };
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -400,6 +401,97 @@ function updateOverlay(metrics) {
   setText('overlay-update', formatTime(metrics.timestamp));
 }
 
+// ---- Onglets ---------------------------------------------------------------------------------
+
+function setActiveTab(tab) {
+  const isDrivers = tab === 'drivers';
+  $('tab-dashboard').hidden = isDrivers;
+  $('tab-drivers').hidden = !isDrivers;
+  document.querySelectorAll('.tab-button').forEach((btn) => {
+    const active = btn.dataset.tab === tab;
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-selected', String(active));
+  });
+  if (isDrivers) renderDrivers();
+  else scheduleFit();
+}
+
+// ---- Pilotes -----------------------------------------------------------------------------------
+
+function driverSummary(state) {
+  if (state.status === 'scanning') return { chip: '…', level: 'warn', text: 'Recherche en cours (Windows Update)…' };
+  if (state.status === 'error') return { chip: '!', level: 'crit', text: 'Windows Update n’a pas pu être contacté.' };
+  if (state.status === 'done') {
+    if (state.outdatedCount > 0) {
+      const plural = state.outdatedCount > 1 ? 's' : '';
+      return { chip: String(state.outdatedCount), level: 'warn', text: `${state.outdatedCount} mise${plural} à jour disponible${plural}.` };
+    }
+    return { chip: 'OK', level: 'ok', text: 'Tous les pilotes connus de Windows Update sont à jour.' };
+  }
+  return { chip: '—', level: 'muted', text: 'Recherche non lancée.' };
+}
+
+function driverBadge(status) {
+  if (status === 'updateAvailable') return { text: 'Mise à jour', level: 'warn' };
+  if (status === 'upToDate') return { text: 'À jour', level: 'ok' };
+  return { text: 'Non vérifié', level: 'muted' };
+}
+
+function renderDriverRow(driver) {
+  const row = el('div', 'driver-row');
+  const badge = driverBadge(driver.status);
+  row.dataset.level = badge.level;
+  const name = el('div', 'driver-name');
+  name.append(el('strong', '', driver.device || 'Périphérique'));
+  const subParts = [driver.manufacturer, driver.installedVersion ? `v${driver.installedVersion}` : null].filter(Boolean);
+  if (subParts.length) name.append(el('span', 'driver-sub', subParts.join(' · ')));
+  row.append(name, el('span', `driver-chip driver-chip--${badge.level}`, badge.text));
+  if (driver.status === 'updateAvailable' && driver.updateTitle) {
+    row.append(el('div', 'driver-detail', driver.updateTitle));
+  }
+  return row;
+}
+
+function renderDrivers() {
+  if ($('tab-drivers')?.hidden) return; // onglet caché : pas besoin de redessiner
+  const summary = driverSummary(driverState);
+  const chip = $('drivers-chip');
+  if (chip) { chip.textContent = summary.chip; chip.className = `driver-chip driver-chip--${summary.level}`; }
+  setText('drivers-status-text', summary.text);
+  const rescan = $('drivers-rescan');
+  if (rescan) { rescan.disabled = driverState.status === 'scanning'; rescan.textContent = driverState.status === 'scanning' ? 'Recherche en cours…' : 'Rechercher les mises à jour'; }
+  const openWu = $('drivers-open-wu');
+  if (openWu) openWu.hidden = driverState.outdatedCount === 0;
+  setText('drivers-last-scan', driverState.lastScan ? `Dernière recherche : ${formatTime(driverState.lastScan)}` : '');
+
+  const outdated = driverState.drivers.filter((d) => d.status === 'updateAvailable');
+  const outdatedGroup = $('drivers-outdated');
+  const outdatedList = $('drivers-outdated-list');
+  if (outdatedGroup && outdatedList) {
+    outdatedGroup.hidden = outdated.length === 0;
+    outdatedList.replaceChildren(...outdated.map(renderDriverRow));
+  }
+  const allList = $('drivers-all-list');
+  if (allList) {
+    allList.replaceChildren(...(driverState.drivers.length
+      ? driverState.drivers.map(renderDriverRow)
+      : [el('div', 'driver-empty', driverState.status === 'scanning' ? 'Recherche en cours…' : 'Aucun pilote détecté.')]));
+  }
+  setText('drivers-total-count', String(driverState.total || 0));
+}
+
+function updateDriversTabDot() {
+  const dot = $('drivers-tab-dot');
+  if (dot) dot.hidden = !(driverState.status === 'done' && driverState.outdatedCount > 0);
+}
+
+function acceptDriverState(state) {
+  if (!state) return;
+  driverState = state;
+  renderDrivers();
+  updateDriversTabDot();
+}
+
 function applyState(state) {
   if (!state) return;
   if (state.visibility) {
@@ -437,6 +529,8 @@ function applyState(state) {
     }
     const hwinfoToggle = $('launch-hwinfo-toggle');
     if (hwinfoToggle) hwinfoToggle.checked = Boolean(state.launchHwInfo);
+    const driverToggle = $('scan-drivers-toggle');
+    if (driverToggle) driverToggle.checked = Boolean(state.scanDriversOnLaunch);
   }
 }
 
@@ -509,6 +603,22 @@ function initMain() {
     const toggle = event.target;
     try { await api.setLaunchHwInfo(toggle.checked); }
     catch (_error) { toggle.checked = !toggle.checked; showFeedback('Ce réglage n’a pas pu être enregistré.'); }
+  });
+  $('scan-drivers-toggle')?.addEventListener('change', async (event) => {
+    const toggle = event.target;
+    try { await api.setScanDriversOnLaunch(toggle.checked); }
+    catch (_error) { toggle.checked = !toggle.checked; showFeedback('Ce réglage n’a pas pu être enregistré.'); }
+  });
+  document.querySelectorAll('.tab-button').forEach((button) => {
+    button.addEventListener('click', () => setActiveTab(button.dataset.tab));
+  });
+  $('drivers-rescan')?.addEventListener('click', async () => {
+    try { acceptDriverState(await api.scanDrivers()); }
+    catch (_error) { showFeedback('La recherche de pilotes n’a pas pu démarrer.'); }
+  });
+  $('drivers-open-wu')?.addEventListener('click', async () => {
+    try { await api.openDriverUpdate(); }
+    catch (_error) { showFeedback('Windows Update n’a pas pu être ouvert.'); }
   });
   $('temp-admin')?.addEventListener('click', async (event) => {
     const button = event.currentTarget;
@@ -605,3 +715,8 @@ api.onMetrics(acceptMetrics);
 api.onState(applyState);
 api.getState().then(applyState).catch(() => {});
 api.getMetrics().then(acceptMetrics).catch(() => {});
+
+if (!isOverlay) {
+  api.onDrivers(acceptDriverState);
+  api.getDriverState().then(acceptDriverState).catch(() => {});
+}

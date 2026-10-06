@@ -56,7 +56,16 @@
         </div>
       </header>
 
+      <nav class="tab-bar" role="tablist" aria-label="Sections">
+        <button type="button" id="tab-btn-dashboard" class="tab-button is-active" data-tab="dashboard" role="tab" aria-selected="true" aria-controls="tab-dashboard">Tableau de bord</button>
+        <button type="button" id="tab-btn-drivers" class="tab-button" data-tab="drivers" role="tab" aria-selected="false" aria-controls="tab-drivers">
+          Pilotes
+          <span id="drivers-tab-dot" class="tab-dot" hidden></span>
+        </button>
+      </nav>
+
       <main class="dashboard-content">
+        <div id="tab-dashboard" role="tabpanel" aria-labelledby="tab-btn-dashboard">
         <section id="display-panel" class="display-panel" aria-label="Choisir ce qui est affiché" hidden>
           <div class="display-group" data-group="cards">
             <div class="display-group-header">
@@ -102,6 +111,7 @@
           </div>
           <div class="display-group" data-group="integrations">
             <label class="check-item"><input id="launch-hwinfo-toggle" type="checkbox" /> <span>Lancer HWiNFO64 au démarrage (si installé) — pour la température CPU</span></label>
+            <label class="check-item"><input id="scan-drivers-toggle" type="checkbox" /> <span>Rechercher les mises à jour de pilotes au démarrage (via Windows Update, onglet « Pilotes »)</span></label>
           </div>
           <div class="display-footer">
             <p class="display-note">Vos choix sont enregistrés et retrouvés au prochain lancement.</p>
@@ -208,6 +218,33 @@
             <button id="fps-admin" class="secondary-button fps-admin" type="button" hidden>Relancer en administrateur</button>
           </article>
         </section>
+        </div>
+
+        <div id="tab-drivers" role="tabpanel" aria-labelledby="tab-btn-drivers" hidden>
+          <section class="drivers-panel" aria-label="Pilotes">
+            <div class="drivers-head">
+              <div class="drivers-head-main">
+                <span id="drivers-chip" class="driver-chip driver-chip--muted">—</span>
+                <span id="drivers-status-text">Recherche non lancée.</span>
+              </div>
+              <div class="drivers-head-actions">
+                <button id="drivers-rescan" class="secondary-button" type="button">Rechercher les mises à jour</button>
+                <button id="drivers-open-wu" class="secondary-button" type="button" hidden>Ouvrir Windows Update</button>
+              </div>
+            </div>
+            <p id="drivers-last-scan" class="display-note"></p>
+            <p class="display-note drivers-source-note">Vérification via l'agent Windows Update intégré à Windows (Microsoft) — pas de compte, pas de service tiers. System Pulse ne modifie aucun pilote : l'installation se fait depuis Windows Update.</p>
+
+            <div id="drivers-outdated" class="driver-group" hidden>
+              <h2>Mises à jour disponibles</h2>
+              <div id="drivers-outdated-list" class="driver-list"></div>
+            </div>
+            <details class="driver-group driver-group--all">
+              <summary>Tous les pilotes détectés (<span id="drivers-total-count">0</span>)</summary>
+              <div id="drivers-all-list" class="driver-list"></div>
+            </details>
+          </section>
+        </div>
       </main>
 
       <footer class="app-footer" aria-live="polite">

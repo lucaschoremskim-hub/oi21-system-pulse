@@ -23,7 +23,7 @@ Cliquer sur "Informations complémentaires" puis "Exécuter quand même".
 Ce que fait l'application
 Elle affiche en temps réel la charge CPU, GPU (toutes marques), RAM, la température CPU et GPU
 (selon le matériel), le réseau et tous les disques, avec un overlay optionnel par-dessus les jeux.
-Tout reste local : les mesures ne quittent jamais le PC. Seule requête réseau : au démarrage, lecture du fichier version.json du site pour signaler une nouvelle version (rien n’est envoyé).
+Tout reste local : les mesures ne quittent jamais le PC. Requêtes réseau : au démarrage, lecture du fichier version.json du site pour signaler une nouvelle version, et recherche de mises à jour de pilotes auprès de Windows Update (rien n'est envoyé, désactivable dans "Affichage").
 
 Fonctions
 - Bouton "Affichage" : cases à cocher pour choisir ce qu'on veut voir, dans le
@@ -34,6 +34,11 @@ Fonctions
 - Tous les disques sont affichés (A:, C:, D:...), avec une case par disque.
 - FPS réels du jeu en cours, désactivés par défaut (à cocher dans "Affichage").
 - Vos choix sont enregistrés et retrouvés au prochain lancement.
+- Onglet "Pilotes" : scanne au démarrage les pilotes installés et signale, via Windows Update
+  (le même mécanisme que le panneau de configuration), ceux qui ont une mise à jour disponible.
+  Bouton pour relancer la recherche à la main, et bouton pour ouvrir Windows Update et installer.
+  System Pulse ne modifie aucun pilote lui-même. Case "Affichage" pour désactiver la recherche
+  automatique au démarrage (elle reste possible à la main dans l'onglet).
 
 FPS et droits administrateur
 Les FPS sont mesurés avec PresentMon (Intel, licence MIT, dossier vendor), qui exige de

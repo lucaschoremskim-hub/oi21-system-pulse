@@ -8,8 +8,11 @@
     // Ouvert hors de l'application (aperçu dans un navigateur) : API inerte.
     var none = function () { return Promise.resolve(null); };
     window.systemPulse = { getState: none, getMetrics: none, setOverlayVisible: none, setInterval: none, setVisibility: none,
-      setOverlayMovable: none, relaunchAsAdmin: none, openUpdate: none, setLaunchHwInfo: none, windowAction: function () {}, moveOverlay: function () {}, endOverlayMove: function () {},
-      fitOverlay: function () {}, onMetrics: function () { return function () {}; }, onState: function () { return function () {}; } };
+      setOverlayMovable: none, relaunchAsAdmin: none, openUpdate: none, setLaunchHwInfo: none,
+      getDriverState: none, scanDrivers: none, openDriverUpdate: none, setScanDriversOnLaunch: none,
+      windowAction: function () {}, moveOverlay: function () {}, endOverlayMove: function () {},
+      fitOverlay: function () {}, onMetrics: function () { return function () {}; }, onState: function () { return function () {}; },
+      onDrivers: function () { return function () {}; } };
     return;
   }
 
@@ -17,6 +20,7 @@
   var pending = {};
   var metricsListeners = [];
   var stateListeners = [];
+  var driverListeners = [];
 
   function call(type, payload) {
     return new Promise(function (resolve) {
@@ -44,6 +48,8 @@
       metricsListeners.slice().forEach(function (cb) { cb(message.data); });
     } else if (message.event === 'app:state') {
       stateListeners.slice().forEach(function (cb) { cb(message.data); });
+    } else if (message.event === 'drivers:update') {
+      driverListeners.slice().forEach(function (cb) { cb(message.data); });
     }
   });
 
@@ -57,12 +63,17 @@
     relaunchAsAdmin: function () { return call('relaunchAsAdmin'); },
     openUpdate: function () { return call('openUpdate'); },
     setLaunchHwInfo: function (on) { return call('setLaunchHwInfo', Boolean(on)); },
+    getDriverState: function () { return call('getDriverState'); },
+    scanDrivers: function () { return call('scanDrivers'); },
+    openDriverUpdate: function () { return call('openDriverUpdate'); },
+    setScanDriversOnLaunch: function (on) { return call('setScanDriversOnLaunch', Boolean(on)); },
     // La fenêtre a sa barre de titre Windows ; l'overlay est dessiné par l'hôte : ces appels n'ont plus d'objet.
     windowAction: function () {},
     moveOverlay: function () {},
     endOverlayMove: function () {},
     fitOverlay: function () {},
     onMetrics: function (callback) { return subscribe(metricsListeners, callback); },
-    onState: function (callback) { return subscribe(stateListeners, callback); }
+    onState: function (callback) { return subscribe(stateListeners, callback); },
+    onDrivers: function (callback) { return subscribe(driverListeners, callback); }
   };
 })();

@@ -20,6 +20,12 @@ namespace SystemPulse
             return parsed as Dictionary<string, object>;
         }
 
+        public static object[] ParseArray(string text)
+        {
+            object parsed = Serializer.DeserializeObject(text);
+            return parsed as object[];
+        }
+
         public static object Get(Dictionary<string, object> map, string key)
         {
             object value;
